@@ -1,36 +1,47 @@
-import numpy as np
+class StockTrader:
+    def _init_(self):
+        self.portfolio = {}
 
-def printTransactions(m, k, d, name, owned, prices):
-    transactions = []
+    def make_decision(self, m, k, stocks):
+        transactions = []
 
-    for i in range(k):
-        current_stock = {
-            "name": name[i],
-            "owned": owned[i],
-            "prices": prices[i]
-        }
+        for stock in stocks:
+            name, owned, prices = stock[0], stock[1], stock[2:]
+            current_price = prices[-1]
 
-        mean_price = np.mean(current_stock["prices"])
-        std_dev = np.std(current_stock["prices"])
+            action, quantity = self.decide_action(name, owned, current_price, m, prices)
 
-        if current_stock["prices"][-1] > mean_price + std_dev:
-            transactions.append((current_stock["name"], "SELL", current_stock["owned"]))
-            current_stock["owned"] = 0
-        elif current_stock["prices"][-1] < mean_price - std_dev and m > 0:
-            num_shares_to_buy = min(int(m / current_stock["prices"][-1]), 5 - current_stock["owned"])
-            transactions.append((current_stock["name"], "BUY", num_shares_to_buy))
-            current_stock["owned"] += num_shares_to_buy
+            if action == "BUY":
+                transactions.append((name, action, quantity))
+                self.portfolio[name] = self.portfolio.get(name, 0) + quantity
+                m -= quantity * current_price
+            elif action == "SELL":
+                transactions.append((name, action, quantity))
+                self.portfolio[name] -= quantity
+                m += quantity * current_price
+
+        return transactions
+
+    def decide_action(self, name, owned, current_price, m, prices):
+        if current_price < min(prices):
+            return "BUY", int(m / current_price)
+        elif current_price > max(prices):
+            return "SELL", owned
+        else:
+            return "HOLD", 0
+
+
+def main():
+    trader = StockTrader()
+    m, k, d = map(int, input().split())
+    stocks = [input().split() for _ in range(k)]
+
+    transactions = trader.make_decision(m, k, stocks)
 
     print(len(transactions))
     for transaction in transactions:
-        print(f"{transaction[0]} {transaction[1]} {transaction[2]}")
+        print(" ".join(map(str, transaction)))
 
-m, k, d = 90, 2, 400
-name = ["iStreet", "HR"]
-owned = [10, 0]
-prices = [
-    [4.54, 5.53, 6.56, 5.54, 7.60],
-    [30.54, 27.53, 24.42, 20.11, 17.50]
-]
 
-printTransactions(m, k, d, name, owned, prices)
+if __name__ == "__main__":
+    main()
